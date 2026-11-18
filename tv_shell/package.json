@@ -1,0 +1,7 @@
+{
+  "name": "bedtube-tv-shell",
+  "version": "0.0.1",
+  "private": true,
+  "description": "BedTube Controller - Dedicated YouTube TV Leanback 1080p60/4K60 Shell",
+  "main": "main.js"
+}

@@ -1,0 +1,23 @@
+# Python & PyInstaller
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.spec
+build/
+dist/
+release_out/
+
+# User secrets, logs & local binaries
+config.json
+*.log
+bin/*.exe
+runtime/
+installer/bin/
+installer/obj/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

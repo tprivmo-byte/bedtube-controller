@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "soundbar_match": "",
+  "headset_match": "",
+  "night_volume": 25,
+  "port": 5050,
+  "tv_control_port": 5051,
+  "enable_cloud_tunnel": true,
+  "enable_mqtt_relay": true,
+  "access_token": "",
+  "relay_topic_id": "",
+  "electron_path": "",
+  "tv_url": "https://www.youtube.com/tv",
+  "preferred_quality": "1080",
+  "language": "auto",
+  "first_run_completed": false
+}

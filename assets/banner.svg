@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 380" width="1200" height="380">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#07070b"/>
+      <stop offset="55%" stop-color="#10101a"/>
+      <stop offset="100%" stop-color="#190b14"/>
+    </linearGradient>
+    <linearGradient id="brand" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff2e55"/>
+      <stop offset="100%" stop-color="#c81038"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ff2e55" stop-opacity="0.35"/>
+      <stop offset="50%" stop-color="#3b82f6" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#10b981" stop-opacity="0.30"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="380" rx="26" fill="url(#bg)"/>
+  <rect x="2" y="2" width="1196" height="376" rx="24" fill="none" stroke="#252538" stroke-width="2"/>
+  <ellipse cx="600" cy="365" rx="500" ry="55" fill="url(#glow)"/>
+
+  <!-- TV Icon Badge -->
+  <g transform="translate(82, 78)">
+    <rect x="0" y="0" width="124" height="92" rx="20" fill="url(#brand)"/>
+    <rect x="8" y="8" width="108" height="76" rx="14" fill="#0d0d14"/>
+    <polygon points="49,28 49,64 82,46" fill="#ff2e55"/>
+    <rect x="38" y="100" width="48" height="8" rx="4" fill="#ff2e55"/>
+  </g>
+
+  <!-- Title & Subtitle -->
+  <text x="234" y="128" fill="#f8fafc" font-family="Segoe UI, Inter, system-ui, sans-serif" font-size="50" font-weight="800" letter-spacing="-1">BedTube Controller</text>
+  <rect x="706" y="94" width="96" height="38" rx="19" fill="#2a121c" stroke="#ff2e55" stroke-width="1.5"/>
+  <text x="754" y="119" text-anchor="middle" fill="#ff5c7c" font-family="Segoe UI, Inter, system-ui, sans-serif" font-size="18" font-weight="700">v0.0.1</text>
+
+  <text x="236" y="168" fill="#cbd5e1" font-family="Segoe UI, Inter, system-ui, sans-serif" font-size="22" font-weight="500">
+    1080p60 / 4K60 YouTube Smart TV on Windows PC • Mobile OLED Remote • Auto Audio Switcher
+  </text>
+  <text x="236" y="198" fill="#94a3b8" font-family="Segoe UI, Inter, system-ui, sans-serif" font-size="17">
+    🇺🇸 Watch from Bed   •   🇧🇷 Controle da Cama pelo Celular   •   🇪🇸 Controla desde la Cama con tu Móvil
+  </text>
+
+  <!-- Feature Pills -->
+  <g transform="translate(82, 248)" font-family="Segoe UI, Inter, system-ui, sans-serif" font-size="15" font-weight="600">
+    <rect x="0" y="0" width="248" height="54" rx="14" fill="#141422" stroke="#2d2d46"/>
+    <text x="124" y="33" text-anchor="middle" fill="#f1f5f9">🎬 1080p60 / 4K60 Leanback</text>
+
+    <rect x="266" y="0" width="268" height="54" rx="14" fill="#141422" stroke="#2d2d46"/>
+    <text x="400" y="33" text-anchor="middle" fill="#f1f5f9">🔊 Headset ↔ Soundbar (&lt;5ms)</text>
+
+    <rect x="552" y="0" width="266" height="54" rx="14" fill="#141422" stroke="#2d2d46"/>
+    <text x="685" y="33" text-anchor="middle" fill="#f1f5f9">☁️ HTTPS Tunnel + MQTT PWA</text>
+
+    <rect x="836" y="0" width="282" height="54" rx="14" fill="#141422" stroke="#2d2d46"/>
+    <text x="977" y="33" text-anchor="middle" fill="#f1f5f9">🌙 Sleep Timer &amp; Screen Off</text>
+  </g>
+</svg>
