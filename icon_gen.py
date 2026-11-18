@@ -73,8 +73,8 @@ def create_bedtube_icon(size: int = 256, active: bool = False) -> Image.Image:
 
     pad = max(1, int(size * 0.06))
     radius = max(4, int(size * 0.24))
-    bg_color = (12, 12, 18, 255)
-    border_color = (16, 185, 129, 255) if active else (225, 29, 72, 255)
+    bg_color = (14, 14, 21, 255)
+    border_color = (16, 185, 129, 255) if active else (99, 102, 241, 255)
     draw.rounded_rectangle(
         [pad, pad, size - pad, size - pad],
         radius=radius,
@@ -87,10 +87,10 @@ def create_bedtube_icon(size: int = 256, active: bool = False) -> Image.Image:
     tv_y1 = int(size * 0.23)
     tv_x2 = int(size * 0.82)
     tv_y2 = int(size * 0.67)
-    tv_color = (225, 29, 72, 255)
+    tv_color = (91, 91, 240, 255)
     draw.rounded_rectangle(
         [tv_x1, tv_y1, tv_x2, tv_y2],
-        radius=max(3, int(size * 0.08)),
+        radius=max(3, int(size * 0.085)),
         fill=tv_color,
     )
 
@@ -140,7 +140,7 @@ def get_qr_png_bytes(url: str) -> bytes:
     qr = qrcode.QRCode(version=1, box_size=8, border=2)
     qr.add_data(url)
     qr.make(fit=True)
-    img = qr.make_image(fill_color="#f4f4f5", back_color="#101015")
+    img = qr.make_image(fill_color="#f4f4f8", back_color="#12121a")
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     return buf.getvalue()

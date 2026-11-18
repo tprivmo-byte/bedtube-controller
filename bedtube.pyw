@@ -176,6 +176,12 @@ def main():
         else:
             action_open_qr()
 
+    def action_wake_screen(icon=None, item=None):
+        threading.Thread(target=tv_mgr.wake_monitor, daemon=True).start()
+
+    def action_off_screen(icon=None, item=None):
+        threading.Thread(target=tv_mgr.turn_off_monitor, daemon=True).start()
+
     def action_toggle_autostart(icon=None, item=None):
         set_autostart_enabled(not get_autostart_enabled())
 
@@ -188,6 +194,9 @@ def main():
         Menu.SEPARATOR,
         MenuItem("📺 Abrir YouTube TV + Soundbar", action_open_tv),
         MenuItem("⏹ Fechar TV + Voltar p/ Fone", action_close_tv),
+        Menu.SEPARATOR,
+        MenuItem("☀️ Ligar Tela do PC", action_wake_screen),
+        MenuItem("🌙 Apagar Tela do PC", action_off_screen),
         Menu.SEPARATOR,
         MenuItem("🔊 Forçar Áudio: Soundbar / TV", action_soundbar),
         MenuItem("🎧 Forçar Áudio: Fone / PC", action_headset),

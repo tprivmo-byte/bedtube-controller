@@ -148,7 +148,7 @@ namespace BedTubeUninstaller
         {
             { "pt", new Dictionary<string, string> {
                 { "title", "Desinstalar BedTube Controller" },
-                { "desc", "Deseja remover o BedTube Controller v0.0.1 do seu computador?" },
+                { "desc", "Deseja remover o BedTube Controller v0.0.2 do seu computador?" },
                 { "keep", "Manter minhas configurações de áudio e celulares pareados" },
                 { "uninstall", "Desinstalar Agora" },
                 { "cancel", "Cancelar" },
@@ -157,7 +157,7 @@ namespace BedTubeUninstaller
             }},
             { "en", new Dictionary<string, string> {
                 { "title", "Uninstall BedTube Controller" },
-                { "desc", "Do you want to remove BedTube Controller v0.0.1 from your PC?" },
+                { "desc", "Do you want to remove BedTube Controller v0.0.2 from your PC?" },
                 { "keep", "Keep my audio settings and paired smartphones" },
                 { "uninstall", "Uninstall Now" },
                 { "cancel", "Cancel" },
@@ -166,7 +166,7 @@ namespace BedTubeUninstaller
             }},
             { "es", new Dictionary<string, string> {
                 { "title", "Desinstalar BedTube Controller" },
-                { "desc", "¿Deseas eliminar BedTube Controller v0.0.1 de tu computadora?" },
+                { "desc", "¿Deseas eliminar BedTube Controller v0.0.2 de tu computadora?" },
                 { "keep", "Mantener mis ajustes de audio y móviles vinculados" },
                 { "uninstall", "Desinstalar Ahora" },
                 { "cancel", "Cancelar" },

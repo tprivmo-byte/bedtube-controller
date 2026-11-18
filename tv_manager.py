@@ -1,4 +1,5 @@
 import ctypes
+from ctypes import wintypes
 import json
 import logging
 import os
@@ -21,6 +22,7 @@ kernel32 = ctypes.windll.kernel32
 HWND_BROADCAST = 0xFFFF
 WM_SYSCOMMAND = 0x0112
 SC_MONITORPOWER = 0xF170
+INPUT_MOUSE = 0
 MOUSEEVENTF_MOVE = 0x0001
 ES_CONTINUOUS = 0x80000000
 ES_SYSTEM_REQUIRED = 0x00000001
@@ -45,6 +47,45 @@ KEY_MAP = {
     "rw": "Rewind",
 }
 
+ULONG_PTR = ctypes.c_uint64 if ctypes.sizeof(ctypes.c_void_p) == 8 else ctypes.c_uint32
+
+
+class MOUSEINPUT(ctypes.Structure):
+    _fields_ = [
+        ("dx", wintypes.LONG),
+        ("dy", wintypes.LONG),
+        ("mouseData", wintypes.DWORD),
+        ("dwFlags", wintypes.DWORD),
+        ("time", wintypes.DWORD),
+        ("dwExtraInfo", ULONG_PTR),
+    ]
+
+
+class _INPUT_UNION(ctypes.Union):
+    _fields_ = [("mi", MOUSEINPUT)]
+
+
+class INPUT(ctypes.Structure):
+    _fields_ = [
+        ("type", wintypes.DWORD),
+        ("u", _INPUT_UNION),
+    ]
+
+
+def _send_mouse_jiggle():
+    """Envia evento real de entrada (SendInput) exigido pelo Windows 11 Modern Standby para religar o monitor."""
+    for dx in (1, -1):
+        inp = INPUT()
+        inp.type = INPUT_MOUSE
+        inp.u.mi.dx = dx
+        inp.u.mi.dy = 0
+        inp.u.mi.mouseData = 0
+        inp.u.mi.dwFlags = MOUSEEVENTF_MOVE
+        inp.u.mi.time = 0
+        inp.u.mi.dwExtraInfo = 0
+        user32.SendInput(1, ctypes.byref(inp), ctypes.sizeof(INPUT))
+        time.sleep(0.035)
+
 
 def _find_free_port(preferred: int = 5051) -> int:
     for candidate in [preferred, preferred + 1, preferred + 2, 0]:
@@ -61,17 +102,20 @@ class TVSessionManager:
     """
     Gerencia o motor dedicado BedTube TV Shell (Electron + Cobalt 27 1080p60/4K60),
     isolamento persistente sem extensões, Watchdog de restauração de áudio,
-    controle de energia do monitor e Sleep Timer.
+    controle confiável de energia do monitor (Apagar / Ligar Tela) e Desligamento Seguro do PC.
     """
 
     def __init__(self, on_state_change=None):
         self._lock = threading.RLock()
         self.proc: subprocess.Popen | None = None
         self.tv_active: bool = False
+        self.screen_off: bool = False
         self._active_control_port: int = int(load_config().get("tv_control_port", 5051))
         self._pre_tv_device_id: str = ""
         self._pre_tv_device_name: str = ""
         self.sleep_deadline: float | None = None
+        self.pc_shutdown_deadline: float | None = None
+        self._pc_shutdown_triggered: bool = False
         self.on_state_change = on_state_change
         self._stop_event = threading.Event()
         self._watchdog_thread = threading.Thread(
@@ -125,16 +169,22 @@ class TVSessionManager:
         return find_resource("tv_shell")
 
     def wake_monitor(self):
+        """Religa imediatamente o monitor do PC (compatível com Windows 10/11 Modern Standby)."""
         try:
+            self.screen_off = False
             kernel32.SetThreadExecutionState(
                 ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED
             )
-            user32.SendMessageW(HWND_BROADCAST, WM_SYSCOMMAND, SC_MONITORPOWER, -1)
+            user32.PostMessageW(HWND_BROADCAST, WM_SYSCOMMAND, SC_MONITORPOWER, -1)
+            _send_mouse_jiggle()
             user32.mouse_event(MOUSEEVENTF_MOVE, 1, 0, 0, 0)
-            time.sleep(0.03)
+            time.sleep(0.02)
             user32.mouse_event(MOUSEEVENTF_MOVE, -1, 0, 0, 0)
+            if self.is_tv_running():
+                self._tv_http("/cmd", {"action": "focus"}, timeout=0.45)
         except Exception as exc:
             logger.warning("Aviso ao acordar monitor: %s", exc)
+        self._notify()
 
     def _allow_monitor_sleep_again(self):
         try:
@@ -143,14 +193,19 @@ class TVSessionManager:
             pass
 
     def turn_off_monitor(self):
+        """Coloca o monitor em standby liberando bloqueio de exibição antes do comando."""
+        self.screen_off = True
+        self._allow_monitor_sleep_again()
+
         def _delayed_off():
-            time.sleep(0.45)
+            time.sleep(0.42)
             try:
-                user32.SendMessageW(HWND_BROADCAST, WM_SYSCOMMAND, SC_MONITORPOWER, 2)
+                user32.PostMessageW(HWND_BROADCAST, WM_SYSCOMMAND, SC_MONITORPOWER, 2)
             except Exception as exc:
                 logger.warning("Aviso ao desligar monitor: %s", exc)
 
         threading.Thread(target=_delayed_off, daemon=True).start()
+        self._notify()
 
     def is_tv_running(self) -> bool:
         with self._lock:
@@ -176,6 +231,95 @@ class TVSessionManager:
             self.sleep_deadline = time.time() + (minutes * 60)
             logger.info("Sleep timer agendado para %d minutos.", minutes)
             return minutes
+
+    def get_pc_shutdown_remaining_sec(self) -> int | None:
+        if not self.pc_shutdown_deadline:
+            return None
+        rem = self.pc_shutdown_deadline - time.time()
+        if rem <= 0:
+            return 0 if self._pc_shutdown_triggered else None
+        return max(1, int(round(rem)))
+
+    def schedule_pc_shutdown(self, mode: str = "timer", minutes: int = 0) -> dict:
+        """
+        Agenda ou cancela o desligamento real do Windows:
+        - mode='cancel' ou minutes<=0 (quando mode!='now'): cancela desligamento agendado
+        - mode='now': inicia contagem regressiva de segurança de 8s antes de desligar
+        - mode='timer' com minutes>0: agenda desligamento em N minutos
+        """
+        clean_mode = (mode or "timer").strip().lower()
+        with self._lock:
+            if clean_mode == "cancel" or (clean_mode != "now" and int(minutes) <= 0):
+                self.pc_shutdown_deadline = None
+                self._pc_shutdown_triggered = False
+                try:
+                    subprocess.run(
+                        ["shutdown.exe", "/a"],
+                        creationflags=CREATE_NO_WINDOW,
+                        check=False,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                    )
+                except Exception:
+                    pass
+                logger.info("Desligamento do PC cancelado pelo usuário.")
+                self._notify()
+                return {
+                    "ok": True,
+                    "pc_shutdown_remaining_sec": None,
+                    "message": "Desligamento do PC cancelado",
+                }
+
+            if clean_mode == "now":
+                delay_sec = 8
+                self._pc_shutdown_triggered = False
+                self.pc_shutdown_deadline = time.time() + delay_sec
+                logger.info("Desligamento imediato do PC solicitado (contagem de segurança: %ds).", delay_sec)
+                self._notify()
+                return {
+                    "ok": True,
+                    "pc_shutdown_remaining_sec": delay_sec,
+                    "message": f"Desligando PC em {delay_sec}s (toque em Cancelar p/ abortar)",
+                }
+
+            mins = max(1, min(720, int(minutes)))
+            self._pc_shutdown_triggered = False
+            self.pc_shutdown_deadline = time.time() + (mins * 60)
+            logger.info("Desligamento do PC agendado para %d minutos.", mins)
+            self._notify()
+            return {
+                "ok": True,
+                "pc_shutdown_remaining_sec": mins * 60,
+                "message": f"PC será desligado em {mins} min",
+            }
+
+    def _execute_pc_shutdown(self):
+        """Fecha o Modo TV, restaura o áudio padrão (Fone/PC) p/ o próximo boot e desliga o Windows."""
+        logger.warning("Executando desligamento do PC agendado pelo BedTube...")
+        try:
+            if self.tv_active or self.is_tv_running():
+                self.close_tv(turn_off_screen=False)
+            else:
+                cfg = load_config()
+                self._restore_pc_audio(cfg)
+        except Exception as exc:
+            logger.warning("Aviso ao preparar áudio antes de desligar PC: %s", exc)
+
+        try:
+            subprocess.Popen(
+                [
+                    "shutdown.exe",
+                    "/s",
+                    "/f",
+                    "/t",
+                    "3",
+                    "/c",
+                    "BedTube Controller: Desligando o PC. Boa noite!",
+                ],
+                creationflags=CREATE_NO_WINDOW,
+            )
+        except Exception as exc:
+            logger.error("Erro ao disparar shutdown.exe: %s", exc)
 
     def set_tv_quality(self, pref: str) -> dict:
         clean = (pref or "1080").strip().lower()
@@ -229,7 +373,6 @@ class TVSessionManager:
             cfg = load_config()
             self.wake_monitor()
 
-            # Salva saída atual antes de alternar, garantindo restauração mesmo sem fone configurado
             if not self.tv_active:
                 cur_audio = get_audio_state()
                 if cur_audio.get("ok") and cur_audio.get("device_id"):
@@ -396,6 +539,23 @@ class TVSessionManager:
         while not self._stop_event.is_set():
             try:
                 now = time.time()
+
+                # Verifica temporizador de Desligamento do PC
+                trigger_pc_shutdown = False
+                with self._lock:
+                    if (
+                        self.pc_shutdown_deadline
+                        and not self._pc_shutdown_triggered
+                        and now >= self.pc_shutdown_deadline
+                    ):
+                        self._pc_shutdown_triggered = True
+                        self.pc_shutdown_deadline = None
+                        trigger_pc_shutdown = True
+
+                if trigger_pc_shutdown:
+                    self._execute_pc_shutdown()
+                    continue
+
                 if self.sleep_deadline and now >= self.sleep_deadline:
                     logger.info("Sleep Timer atingido! Encerrando TV e apagando tela...")
                     self.sleep_deadline = None
@@ -431,7 +591,7 @@ class TVSessionManager:
             except Exception as exc:
                 logger.error("Erro no Watchdog: %s", exc)
 
-            self._stop_event.wait(1.2)
+            self._stop_event.wait(1.0)
 
     def shutdown(self):
         self._stop_event.set()

@@ -229,10 +229,24 @@ def switch_audio_by_match(
 
     attempts = max(1, int(retries))
     for attempt in range(attempts):
-        for dev in list_playback_devices():
-            if dev["id"].lower() == q_lower or q_lower in dev["name"].lower():
-                target = dev
-                break
+        devs = list_playback_devices()
+        exact = next(
+            (d for d in devs if d["id"].lower() == q_lower or d["name"].lower() == q_lower),
+            None,
+        )
+        if exact:
+            target = exact
+        else:
+            matches = [d for d in devs if q_lower in d["name"].lower()]
+            if matches and "spdif" not in q_lower and "s/pdif" not in q_lower:
+                analog = [
+                    d
+                    for d in matches
+                    if "s/pdif" not in d["name"].lower() and "spdif" not in d["name"].lower()
+                ]
+                target = analog[0] if analog else matches[0]
+            elif matches:
+                target = matches[0]
         if target or attempt == attempts - 1:
             break
         time.sleep(0.45)

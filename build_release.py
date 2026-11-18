@@ -180,7 +180,7 @@ def build_all():
                 rel_path = os.path.relpath(abs_path, app_dir).replace("\\", "/")
                 zf.write(abs_path, rel_path)
 
-    print("[6/6] Gerando instalador auto-extraível BedTube-Setup-0.0.1.exe...")
+    print(f"[6/6] Gerando instalador auto-extraível BedTube-Setup-{APP_VERSION}.exe...")
     with open(setup_stub_exe, "rb") as f_stub:
         stub_bytes = f_stub.read()
     zip_offset = len(stub_bytes)

@@ -3,7 +3,7 @@ import sys
 import winreg
 
 APP_NAME = "BedTube Controller"
-APP_VERSION = "0.0.1"
+APP_VERSION = "0.0.2"
 RUN_REG_PATH = r"Software\Microsoft\Windows\CurrentVersion\Run"
 RUN_REG_VALUE = "BedTubeController"
 

@@ -92,7 +92,7 @@ namespace BedTubeSetup
 
     public static class SetupEngine
     {
-        public const string APP_VERSION = "0.0.1";
+        public const string APP_VERSION = "0.0.2";
         public const string MAGIC = "BTSETUP1";
 
         public static bool LocatePayload(string exePath, out long zipOffset, out long zipLength)
@@ -120,10 +120,10 @@ namespace BedTubeSetup
             {
                 HttpWebRequest req = (HttpWebRequest)WebRequest.Create("http://127.0.0.1:5050/api/local/shutdown");
                 req.Method = "POST";
-                req.Timeout = 1200;
+                req.Timeout = 1500;
                 req.ContentLength = 0;
                 using (WebResponse resp = req.GetResponse()) { }
-                System.Threading.Thread.Sleep(600);
+                System.Threading.Thread.Sleep(900);
             }
             catch { }
 
@@ -136,11 +136,16 @@ namespace BedTubeSetup
                     {
                         try
                         {
-                            string fn = p.MainModule.FileName;
-                            if (fn != null && fn.StartsWith(targetDir, StringComparison.OrdinalIgnoreCase))
+                            bool shouldKill = (n == "BedTube");
+                            if (!shouldKill)
+                            {
+                                string fn = p.MainModule.FileName;
+                                shouldKill = fn != null && fn.StartsWith(targetDir, StringComparison.OrdinalIgnoreCase);
+                            }
+                            if (shouldKill)
                             {
                                 p.Kill();
-                                p.WaitForExit(1500);
+                                p.WaitForExit(2500);
                             }
                         }
                         catch { }
@@ -213,13 +218,29 @@ namespace BedTubeSetup
                     if (!string.IsNullOrEmpty(parent)) Directory.CreateDirectory(parent);
 
                     using (Stream inStream = entry.Open())
-                    using (FileStream outStream = new FileStream(destPath, FileMode.Create, FileAccess.Write, FileShare.None))
                     {
-                        int read;
-                        while ((read = inStream.Read(buffer, 0, buffer.Length)) > 0)
+                        FileStream outStream = null;
+                        for (int attempt = 0; attempt < 6; attempt++)
                         {
-                            outStream.Write(buffer, 0, read);
-                            extractedBytes += read;
+                            try
+                            {
+                                outStream = new FileStream(destPath, FileMode.Create, FileAccess.Write, FileShare.None);
+                                break;
+                            }
+                            catch (IOException)
+                            {
+                                if (attempt == 5) throw;
+                                System.Threading.Thread.Sleep(300);
+                            }
+                        }
+                        using (outStream)
+                        {
+                            int read;
+                            while ((read = inStream.Read(buffer, 0, buffer.Length)) > 0)
+                            {
+                                outStream.Write(buffer, 0, read);
+                                extractedBytes += read;
+                            }
                         }
                     }
 
@@ -394,54 +415,54 @@ namespace BedTubeSetup
                 { "sub", "Transforme seu PC em uma Smart TV de cama com controle pelo celular" },
                 { "f1", "🎬 YouTube TV 1080p60 / 4K" },
                 { "f2", "🔊 Troca Auto Fone ↔ Soundbar" },
-                { "f3", "📱 Controle Cloud HTTPS & Wi-Fi" },
+                { "f3", "☀️ Ligar/Apagar Tela & Desligar PC" },
                 { "folder", "Pasta de instalação (não requer Administrador):" },
                 { "browse", "Procurar..." },
                 { "c_desk", "Criar atalho na Área de Trabalho" },
                 { "c_menu", "Adicionar ao Menu Iniciar do Windows" },
                 { "c_auto", "Iniciar silenciosamente junto com o Windows (Bandeja)" },
                 { "c_open", "Abrir BedTube e exibir QR Code do celular ao concluir" },
-                { "install", "Instalar BedTube Controller v0.0.1" },
+                { "install", "Instalar BedTube Controller v0.0.2" },
                 { "inst_title", "Instalando BedTube Controller..." },
                 { "inst_wait", "Extraindo motor YouTube TV 1080p/4K e módulos de áudio..." },
                 { "done_title", "Instalação Concluída com Sucesso!" },
-                { "done_desc", "O BedTube Controller v0.0.1 está pronto. Escaneie o QR Code com a câmera do seu celular para controlar a TV e o som direto da cama." },
+                { "done_desc", "O BedTube Controller v0.0.2 está pronto. Escaneie o QR Code com a câmera do seu celular para controlar a TV, tela e desligamento do PC direto da cama." },
                 { "finish", "Concluir e Abrir BedTube" }
             }},
             { "en", new Dictionary<string, string> {
                 { "sub", "Turn your Windows PC into a Bedside Smart TV controlled from your phone" },
                 { "f1", "🎬 YouTube TV 1080p60 / 4K" },
                 { "f2", "🔊 Auto Headset ↔ Soundbar" },
-                { "f3", "📱 Cloud HTTPS & Wi-Fi Remote" },
+                { "f3", "☀️ Screen Wake/Off & PC Shutdown" },
                 { "folder", "Installation folder (no Admin rights required):" },
                 { "browse", "Browse..." },
                 { "c_desk", "Create Desktop shortcut" },
                 { "c_menu", "Create Start Menu shortcut" },
                 { "c_auto", "Start silently with Windows (System Tray)" },
                 { "c_open", "Launch BedTube & show Phone QR Code when finished" },
-                { "install", "Install BedTube Controller v0.0.1" },
+                { "install", "Install BedTube Controller v0.0.2" },
                 { "inst_title", "Installing BedTube Controller..." },
                 { "inst_wait", "Extracting 1080p/4K YouTube TV engine and CoreAudio modules..." },
                 { "done_title", "Installation Completed Successfully!" },
-                { "done_desc", "BedTube Controller v0.0.1 is ready. Scan the QR Code with your phone camera to control YouTube TV and PC audio right from bed." },
+                { "done_desc", "BedTube Controller v0.0.2 is ready. Scan the QR Code with your phone camera to control YouTube TV, monitor power, and PC shutdown right from bed." },
                 { "finish", "Finish & Launch BedTube" }
             }},
             { "es", new Dictionary<string, string> {
                 { "sub", "Convierte tu PC en un Smart TV de dormitorio controlado desde tu móvil" },
                 { "f1", "🎬 YouTube TV 1080p60 / 4K" },
                 { "f2", "🔊 Cambio Auto Auriculares ↔ TV" },
-                { "f3", "📱 Control Cloud HTTPS y Wi-Fi" },
+                { "f3", "☀️ Pantalla y Apagar PC" },
                 { "folder", "Carpeta de instalación (no requiere Administrador):" },
                 { "browse", "Examinar..." },
                 { "c_desk", "Crear acceso directo en el Escritorio" },
                 { "c_menu", "Crear acceso directo en el Menú Inicio" },
                 { "c_auto", "Iniciar silenciosamente con Windows (Bandeja)" },
                 { "c_open", "Abrir BedTube y mostrar código QR al finalizar" },
-                { "install", "Instalar BedTube Controller v0.0.1" },
+                { "install", "Instalar BedTube Controller v0.0.2" },
                 { "inst_title", "Instalando BedTube Controller..." },
                 { "inst_wait", "Extrayendo motor YouTube TV 1080p/4K y módulos de audio..." },
                 { "done_title", "¡Instalación Completada con Éxito!" },
-                { "done_desc", "BedTube Controller v0.0.1 está listo. Escanea el código QR con tu celular para controlar YouTube TV y el sonido desde la cama." },
+                { "done_desc", "BedTube Controller v0.0.2 está listo. Escanea el código QR con tu celular para controlar YouTube TV, pantalla y apagado del PC desde la cama." },
                 { "finish", "Finalizar y Abrir BedTube" }
             }}
         };
@@ -459,7 +480,7 @@ namespace BedTubeSetup
             AllowsTransparency = true;
             Background = Brushes.Transparent;
             ResizeMode = ResizeMode.NoResize;
-            Title = "BedTube Controller v0.0.1 Setup";
+            Title = "BedTube Controller v0.0.2 Setup";
 
             Border card = new Border();
             card.Margin = new Thickness(16);
@@ -526,14 +547,14 @@ namespace BedTubeSetup
 
             StackPanel brand = new StackPanel { Orientation = Orientation.Horizontal };
 
-            // Ícone vetorial BedTube (TV OLED + Play + Soundbar)
+            // Ícone vetorial BedTube (TV OLED + Play + Soundbar — Indigo-Violet v0.0.2)
             Border logoBox = new Border
             {
                 Width = 48,
                 Height = 48,
                 CornerRadius = new CornerRadius(14),
-                Background = BrushHex("#12121C"),
-                BorderBrush = BrushHex("#E11D48"),
+                Background = BrushHex("#12121F"),
+                BorderBrush = BrushHex("#6366F1"),
                 BorderThickness = new Thickness(2),
                 Margin = new Thickness(0, 0, 14, 0)
             };
@@ -543,7 +564,7 @@ namespace BedTubeSetup
                 Width = 28,
                 Height = 19,
                 CornerRadius = new CornerRadius(4),
-                Background = BrushHex("#E11D48")
+                Background = BrushHex("#5B5BF0")
             };
             Canvas.SetLeft(tvRect, 8);
             Canvas.SetTop(tvRect, 8);
@@ -579,14 +600,14 @@ namespace BedTubeSetup
             Border verBadge = new Border
             {
                 CornerRadius = new CornerRadius(999),
-                Background = BrushHex("#2A121D"),
-                BorderBrush = BrushHex("#881337"),
+                Background = BrushHex("#191936"),
+                BorderBrush = BrushHex("#6366F1"),
                 BorderThickness = new Thickness(1),
                 Padding = new Thickness(8, 2, 8, 2),
                 Margin = new Thickness(10, 3, 0, 0),
                 VerticalAlignment = VerticalAlignment.Center
             };
-            verBadge.Child = new TextBlock { Text = "v0.0.1", FontSize = 11, FontWeight = FontWeights.Bold, Foreground = BrushHex("#FDA4AF") };
+            verBadge.Child = new TextBlock { Text = "v0.0.2", FontSize = 11, FontWeight = FontWeights.Bold, Foreground = BrushHex("#A5B4FC") };
             titleRow.Children.Add(verBadge);
             titles.Children.Add(titleRow);
 
@@ -691,7 +712,7 @@ namespace BedTubeSetup
             g.Children.Add(optsCard);
 
             // Primary CTA
-            _btnInstall = MakeGradientButton("", "#E11D48", "#BE123C", 48, 14);
+            _btnInstall = MakeGradientButton("", "#3F37C9", "#5B5BF0", 48, 14);
             _btnInstall.FontSize = 15;
             _btnInstall.Click += OnInstallClick;
             Grid.SetRow(_btnInstall, 3);
@@ -741,8 +762,8 @@ namespace BedTubeSetup
                 HorizontalAlignment = HorizontalAlignment.Left,
                 CornerRadius = new CornerRadius(8),
                 Background = new LinearGradientBrush(
-                    (Color)ColorConverter.ConvertFromString("#E11D48"),
-                    (Color)ColorConverter.ConvertFromString("#10B981"),
+                    (Color)ColorConverter.ConvertFromString("#3F37C9"),
+                    (Color)ColorConverter.ConvertFromString("#7C83FF"),
                     0.0)
             };
             track.Child = _progressFill;
@@ -866,8 +887,8 @@ namespace BedTubeSetup
             foreach (KeyValuePair<string, System.Windows.Controls.Button> kv in _langButtons)
             {
                 bool active = kv.Key == _lang;
-                kv.Value.Background = BrushHex(active ? "#3A1322" : "#171724");
-                kv.Value.Foreground = BrushHex(active ? "#FECDD3" : "#A1A1B5");
+                kv.Value.Background = BrushHex(active ? "#252552" : "#171724");
+                kv.Value.Foreground = BrushHex(active ? "#C7D2FE" : "#A1A1B5");
             }
         }
 
